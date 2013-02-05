@@ -304,7 +304,6 @@ $wgGroupPermissions['bureaucrat']['createpage'] = true;
 $wgGroupPermissions['bureaucrat']['createtalk'] = true;
 $wgGroupPermissions['*']['createaccount'] = false;
 $wgGroupPermissions['*']['edit'] = false;
-$wgGroupPermissions['*']['read'] = false;
 
 $wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
 
