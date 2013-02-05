@@ -280,7 +280,6 @@ $wgScriptPath = '';
 #
 # Подробнее см. http://wiki.4intra.net/Mediawiki4Intranet, секция "Короткие URL"
 
-
 $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['delete'] = false;
 $wgGroupPermissions['*']['undelete'] = false;
@@ -301,7 +300,13 @@ $wgGroupPermissions['sysop']['createpage'] = true;
 $wgGroupPermissions['sysop']['createtalk'] = true;
 $wgGroupPermissions['bureaucrat']['createpage'] = true;
 $wgGroupPermissions['bureaucrat']['createtalk'] = true;
+$wgGroupPermissions['*']['createaccount'] = false;
+$wgGroupPermissions['*']['edit'] = false;
+$wgGroupPermissions['*']['read'] = false;
+
 $wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
+
+
 
 require_once("extensions/ListFeed/ListFeed.php");
 $egListFeedFeedUrlPrefix = '/rss';
