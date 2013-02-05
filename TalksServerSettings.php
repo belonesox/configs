@@ -188,7 +188,7 @@ $wgFavicon = "$wgScriptPath/configs/favicons/wiki4intranet.ico";
 
 $wgDebugLogFile = false;
 
-$wgDefaultSkin = 'monobook';
+$wgDefaultSkin = 'talks';
 
 $wgGroupPermissions['*']['edit'] = false;
 
