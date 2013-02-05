@@ -302,7 +302,6 @@ $wgGroupPermissions['sysop']['createtalk'] = true;
 $wgGroupPermissions['bureaucrat']['createpage'] = true;
 $wgGroupPermissions['bureaucrat']['createtalk'] = true;
 $wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
-$wgEmailConfirmToEdit = true;
 
 require_once("extensions/ListFeed/ListFeed.php");
 $egListFeedFeedUrlPrefix = '/rss';
