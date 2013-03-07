@@ -20,9 +20,13 @@ $wgArticlePath = "/$1";
 #
 # Подробнее см. http://wiki.4intra.net/Mediawiki4Intranet, секция "Короткие URL"
 
-require_once("$IP/extensions/OpenID/OpenID.setup.php");
+#require_once("$IP/extensions/OpenID/OpenID.setup.php");
 
 $wgCookieExpiration = 30 * 86400;
+
+require_once("$IP/extensions/ConfirmEdit/Asirra.php");
+$wgCaptchaClass = 'Asirra';
+
 
 $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['delete'] = false;
@@ -48,5 +52,6 @@ $wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
 $wgEmailConfirmToEdit = true;
 
 require_once("extensions/ListFeed/ListFeed.php");
+
 $egListFeedFeedUrlPrefix = '/rss';
 $egListFeedFeedDir = $IP.'/rss';
