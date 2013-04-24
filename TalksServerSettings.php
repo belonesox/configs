@@ -103,6 +103,8 @@ require_once($IP.'/extensions/BatchEditor/BatchEditor.php');
 require_once($IP.'/extensions/MarkupBabel/MarkupBabel.php');
 require_once($IP.'/extensions/DeleteBatch/DeleteBatch.php');
 require_once($IP.'/extensions/FullLocalImage/FullLocalImage.php');
+require_once($IP.'/extensions/WikiCategoryTagCloud/WikiCategoryTagCloud.php');
+
 
 require_once($IP.'/extensions/MMHandler/MMHandler.php');
 /* for mindmap uploads */
@@ -136,7 +138,7 @@ require_once($IP.'/extensions/FavRate/FavRate.php');
 require_once($IP.'/extensions/SlimboxThumbs/SlimboxThumbs.php');
 require_once($IP.'/extensions/CategoryTree/CategoryTree.php');
 require_once($IP.'/extensions/CatCatGrouping/CatCatGrouping.php');
-
+require_once($IP.'/extensions/googleAnalytics/googleAnalytics.php');
 
 # FlvHandler
 # FlvHandler
