@@ -95,13 +95,18 @@ require_once($IP.'/extensions/CharInsertList/CharInsertList.php');
 require_once($IP.'/extensions/Cite/Cite.php');
 require_once($IP.'/extensions/SyntaxHighlight_GeSHi/SyntaxHighlight_GeSHi.php');
 require_once($IP.'/extensions/CategoryTree/CategoryTree.php');
+
 $wgCategoryTreeMaxDepth = array(CT_MODE_PAGES => 100, CT_MODE_ALL => 100, CT_MODE_CATEGORIES => 100);
 require_once($IP.'/extensions/CatCatGrouping/CatCatGrouping.php');
+# Максимум потомков (ветвей в ноде)
+$wgCategoryTreeMaxChildren = 1000;
+# AJAX использовать?
+$wgCategoryTreeDynamicTag = true;
+# Корневая категория, вместо "Root" - свою категорию.
+$wgCategoryTreeSidebarRoot = 'Root';
+# Режим для AJAX
+$wgCategoryTreeSidebarOptions['mode'] = 10;
 
-$wgSubcategorizedAlwaysExclude = array('CustisWikiToLib',
-    'CustisWikiToSMWiki', 'CustisWikiToSBWiki', 'CustisWikiToRDWiki',
-    'CustisWikiToGZWiki', 'CustisWikiToHRWiki', 'CustisWikiToDPWiki',
-    'CustisWikiToORWiki', 'CustisWikiToCBWiki');
 
 $wgGroupPermissions['*']['interwiki'] = false;
 $wgGroupPermissions['sysop']['interwiki'] = true;
@@ -264,7 +269,7 @@ $wgFavicon = "$wgScriptPath/configs/favicons/wiki4intranet.ico";
 
 $wgDebugLogFile = false;
 
-$wgDefaultSkin = 'monobook';
+$wgDefaultSkin = 'vector';
 
 $wgGroupPermissions['*']['edit'] = false;
 
@@ -313,3 +318,7 @@ $wgCatlinksTop = true;
 // Use "wikipedia-like" search box in Vector skin
 $wgDefaultUserOptions['vector-simplesearch'] = true;
 $wgVectorUseSimpleSearch = true;
+
+# Contact info
+$wgEmergencyContact = "info@rosalab.ru";
+$wgPasswordSender = "info@rosalab.ru";

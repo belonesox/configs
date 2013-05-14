@@ -42,11 +42,38 @@ $wgGroupPermissions['autoconfirmed']['import'] = true;
 $wgGroupPermissions['autoconfirmed']['importupload'] = false;
 $wgGroupPermissions['sysop']['createpage'] = true;
 $wgGroupPermissions['sysop']['createtalk'] = true;
+$wgGroupPermissions['sysop']['renameuser'] = true;
 $wgGroupPermissions['bureaucrat']['createpage'] = true;
 $wgGroupPermissions['bureaucrat']['createtalk'] = true;
-$wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
+
+###### PANIC BUTTON #######
+# Prevent all users from editing (only adminns and bureaucrates can edit)
+# $wgGroupPermissions['user']['edit'] = false;
+# Panic button: admins may lock the database
+$wgGroupPermissions['sysop']['siteadmin'] = true;
+$wgReadOnlyFile = 'DBLockReason';
+###########################
+
+$wgAutoConfirmCount = 3;   # solve two captchas
+$wgAutoConfirmAge = 86400 * 2; # Four days times 86400 seconds/day
 $wgEmailConfirmToEdit = true;
 
 require_once("extensions/ListFeed/ListFeed.php");
 $egListFeedFeedUrlPrefix = '/rss';
 $egListFeedFeedDir = $IP.'/rss';
+
+require_once("extensions/SimpleAntiSpam/SimpleAntiSpam.php");
+require_once("extensions/Collection/Collection.php");
+
+
+#Disabling this allows for improved caching, because all anonymous visitors can then be served the exact same version of each page.
+$wgShowIPinHeader = false;
+
+
+## For attaching licensing metadata to pages, and displaying an
+## appropriate copyright notice / icon. GNU Free Documentation
+## License and Creative Commons licenses are supported so far.
+$wgRightsPage = ""; # Set to the title of a wiki page that describes your license/copyright
+$wgRightsUrl = "";
+$wgRightsText = "";
+$wgRightsIcon = "";
