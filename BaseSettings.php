@@ -81,7 +81,6 @@ $wgAllowCopyUploads     = true;
 $wgStrictFileExtensions = false;
 
 array_push($wgUrlProtocols,"file://");
-$wgLanguageCode = "ru";
 
 $wgSMTP = false;
 $wgShowExceptionDetails = true;
@@ -322,3 +321,32 @@ $wgVectorUseSimpleSearch = true;
 # Contact info
 $wgEmergencyContact = "info@rosalab.ru";
 $wgPasswordSender = "info@rosalab.ru";
+
+if (strpos($wgScriptPath, 'pool')===FALSE){
+    $wgDBname = 'wiki_rosalab_' . $wgLangCode . '_v2'; 
+    $pool_wiki_url = $wgScriptPath . "/../pool";
+    
+    # Integration with the pool wiki for the shared uploads
+    $wgUploadNavigationUrl = "${pool_wiki_url}/index.php/Special:Upload";
+    $wgUseSharedUploads = true;
+    $wgSharedUploadPath = "${pool_wiki_url}/images";
+    $wgSharedUploadDirectory = "${IP}/../pool/images/";
+    $wgHashedSharedUploadDirectory = true;
+    $wgFetchCommonsDescriptions = true;
+    
+    $wgSharedUploadDBname = 'wiki_rosalab_common_v2';  # DB-Name of PoolWiki
+    $wgSharedUploadDBprefix = ''; # Table name prefix for PoolWiki
+    $wgRepositoryBaseUrl = "${pool_wiki_url}/index.php/Image:";
+    
+    # Shared tables: share users, groups, bans, and interwiki data
+    $wgSharedDB = 'wiki_rosalab_common_v2';
+    $wgSharedPrefix = '';
+
+} else {
+    $wgDBname = 'wiki_rosalab_common_v2'; 
+}
+
+$wgDBuser = 'wiki_rosalab_ru'; 
+$wgDBadminuser = $wgDBuser;
+$wgDBadminpassword = $wgDBpassword;
+$wgSitename = "Rosalab Wiki";

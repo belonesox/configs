@@ -47,3 +47,6 @@ $wgEnableScaryTranscluding = true;
 
 // Bug 107222 - TikaMW. TODO: enable also on Windows along with Sphinx
 require_once($IP.'/extensions/TikaMW/TikaMW.php');
+
+
+
