@@ -5,9 +5,8 @@
 
 require_once(dirname(__FILE__).'/ServerSettings.php');
 
-$wgScriptPath = '';
-$wgUsePathInfo = true;
-$wgArticlePath = "/$1";
+#$wgUsePathInfo = true;
+#$wgArticlePath = "/$1";
 
 # Для коротких URL (http://domain.com/ArticleName) нужно использовать mod_rewrite.
 # Конфигурация:
