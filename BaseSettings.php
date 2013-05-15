@@ -25,7 +25,6 @@ $wgSitename         = "CustisWiki";
 
 ## The URL base path to the directory containing the wiki;
 ## defaults for all runtime URL paths are based off of this.
-$wgScriptPath       = "/wiki";
 $wgScriptExtension  = ".php";
 
 $wgEnableEmail      = false;
@@ -265,8 +264,8 @@ if (wfIsWindows())
 
 $wgCookieExpiration = 3650 * 86400;
 
-$wgLogo    = "$wgScriptPath/configs/logos/wiki4intranet-logo.png";
-$wgFavicon = "$wgScriptPath/configs/favicons/wiki4intranet.ico";
+$wgLogo    = "$wgScriptPath/configs/logos/rosa-logo.png";
+$wgFavicon = "$wgScriptPath/configs/favicons/favicon.ico";
 
 $wgDebugLogFile = false;
 
