@@ -49,4 +49,6 @@ $wgEnableScaryTranscluding = true;
 require_once($IP.'/extensions/TikaMW/TikaMW.php');
 
 
+require_once("$IP/extensions/ConfirmEdit/Asirra.php");
+$wgCaptchaClass = 'Asirra';
 
