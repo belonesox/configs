@@ -22,6 +22,12 @@ require_once(dirname(__FILE__).'/ServerSettings.php');
 # Подробнее см. http://wiki.4intra.net/Mediawiki4Intranet, секция "Короткие URL"
 
 require_once("$IP/extensions/OpenID/OpenID.setup.php");
+
+require_once("$IP/extensions/Facebook/Facebook/Facebook.php");
+$wgFbAppId  = '343774672415320';
+$wgFbNamespace = 'rosawiki';
+$wgFbAllowDebug = true;
+
 $wgCookieExpiration = 30 * 86400;
 
 //$wgGroupPermissions['*']['edit'] = false;
