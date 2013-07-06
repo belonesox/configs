@@ -323,10 +323,15 @@ $wgEmergencyContact = "info@rosalab.ru";
 $wgPasswordSender = "info@rosalab.ru";
 
 
+global $wgROSAVersion;
+
+if (!isset($wgROSAVersion)) {
+    $wgROSAVersion = 'v3';
+}
 
 if (strpos($wgScriptPath, 'pool')===FALSE){
     $wgLanguageCode = basename($wgScriptPath);
-    $wgDBname = 'wiki-rosalab-v2_' . $wgLanguageCode; 
+    $wgDBname = 'wiki-rosalab-' . $wgROSAVersion . '_' . $wgLanguageCode; 
     $pool_wiki_url = $wgScriptPath . "/../pool";
     
     # Integration with the pool wiki for the shared uploads
@@ -342,12 +347,12 @@ if (strpos($wgScriptPath, 'pool')===FALSE){
     $wgRepositoryBaseUrl = "${pool_wiki_url}/index.php/Image:";
     
     # Shared tables: share users, groups, bans, and interwiki data
-    $wgSharedDB = 'wiki-rosalab-v2_pool';
+    $wgSharedDB = 'wiki-rosalab-'. $wgROSAVersion .'_pool';
     $wgSharedPrefix = '';
     $wgSharedTables[] = 'ipblocks';
     $wgSharedTables[] = 'interwiki';
 } else {
-    $wgDBname = 'wiki-rosalab-v2_pool'; 
+    $wgDBname = 'wiki-rosalab-'. $wgROSAVersion .'_pool'; 
 }
 
 $wgDBuser = 'wiki_rosalab_ru'; 
