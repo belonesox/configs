@@ -87,3 +87,5 @@ $wgRightsIcon = "";
 
 require_once("$IP/extensions/ConfirmEdit/Asirra.php");
 $wgCaptchaClass = 'Asirra';
+
+require_once("$IP/extensions/Nuke/Nuke.php");
