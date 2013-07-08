@@ -342,7 +342,7 @@ if (strpos($wgScriptPath, 'pool')===FALSE){
     $wgHashedSharedUploadDirectory = true;
     $wgFetchCommonsDescriptions = true;
     
-    $wgSharedUploadDBname = 'wiki-rosalab-v2_pool';  # DB-Name of PoolWiki
+    $wgSharedUploadDBname = 'wiki-rosalab-'. $wgROSAVersion . '_pool';  # DB-Name of PoolWiki
     $wgSharedUploadDBprefix = ''; # Table name prefix for PoolWiki
     $wgRepositoryBaseUrl = "${pool_wiki_url}/index.php/Image:";
     
