@@ -87,5 +87,7 @@ $wgRightsIcon = "";
 
 require_once("$IP/extensions/ConfirmEdit/Asirra.php");
 $wgCaptchaClass = 'Asirra';
+$wgCaptchaTriggers['addurl']        = false;  // Check on edits that add URLs
+
 
 require_once("$IP/extensions/Nuke/Nuke.php");
