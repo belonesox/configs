@@ -90,4 +90,4 @@ $wgCaptchaClass = 'Asirra';
 $wgCaptchaTriggers['addurl']        = false;  // Check on edits that add URLs
 
 
-require_once("$IP/extensions/Nuke/Nuke.php");
+#require_once("$IP/extensions/Nuke/Nuke.php");
