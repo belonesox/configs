@@ -315,3 +315,6 @@ $wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
 require_once("extensions/ListFeed/ListFeed.php");
 $egListFeedFeedUrlPrefix = '/rss';
 $egListFeedFeedDir = $IP.'/rss';
+
+
+require_once("extensions/ArticleByID/ArticleByID.php");
