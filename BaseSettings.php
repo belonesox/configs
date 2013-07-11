@@ -332,19 +332,18 @@ if (!isset($wgROSAVersion)) {
 if (strpos($wgScriptPath, 'pool')===FALSE){
     $wgLanguageCode = basename($wgScriptPath);
     $wgDBname = 'wiki-rosalab-' . $wgROSAVersion . '_' . $wgLanguageCode; 
-    $pool_wiki_url = $wgScriptPath . "/../pool";
-    
+
+    #$pool_wiki_url = $wgScriptPath . "/../pool";
     # Integration with the pool wiki for the shared uploads
-    $wgUploadNavigationUrl = "${pool_wiki_url}/index.php/Special:Upload";
-    $wgUseSharedUploads = true;
-    $wgSharedUploadPath = "${pool_wiki_url}/images";
-    $wgSharedUploadDirectory = "${IP}/../pool/images/";
-    $wgHashedSharedUploadDirectory = true;
-    $wgFetchCommonsDescriptions = true;
-    
-    $wgSharedUploadDBname = 'wiki-rosalab-'. $wgROSAVersion . '_pool';  # DB-Name of PoolWiki
-    $wgSharedUploadDBprefix = ''; # Table name prefix for PoolWiki
-    $wgRepositoryBaseUrl = "${pool_wiki_url}/index.php/Image:";
+    #$wgUploadNavigationUrl = "${pool_wiki_url}/index.php/Special:Upload";
+    #$wgUseSharedUploads = true;
+    #$wgSharedUploadPath = "${pool_wiki_url}/images";
+    #$wgSharedUploadDirectory = "${IP}/../pool/images/";
+    #$wgHashedSharedUploadDirectory = true;
+    #$wgFetchCommonsDescriptions = true;
+    #$wgSharedUploadDBname = 'wiki-rosalab-'. $wgROSAVersion . '_pool';  # DB-Name of PoolWiki
+    #$wgSharedUploadDBprefix = ''; # Table name prefix for PoolWiki
+    #$wgRepositoryBaseUrl = "${pool_wiki_url}/index.php/Image:";
     
     # Shared tables: share users, groups, bans, and interwiki data
     $wgSharedDB = 'wiki-rosalab-'. $wgROSAVersion .'_pool';
