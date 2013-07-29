@@ -80,8 +80,8 @@ $wgShowIPinHeader = false;
 ## appropriate copyright notice / icon. GNU Free Documentation
 ## License and Creative Commons licenses are supported so far.
 $wgRightsPage = ""; # Set to the title of a wiki page that describes your license/copyright
-$wgRightsUrl = "";
-$wgRightsText = "";
+$wgRightsUrl = "http://creativecommons.org/licenses/by-sa/3.0/";
+$wgRightsText = "Creative Commons Attribution-ShareAlike 3.0 License (CC-BY-SA)";
 $wgRightsIcon = "";
 
 
