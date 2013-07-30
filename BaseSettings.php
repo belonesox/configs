@@ -111,6 +111,12 @@ require_once($IP.'/extensions/Interwiki/Interwiki.php');
 require_once($IP.'/extensions/WikiCategoryTagCloud/WikiCategoryTagCloud.php');
 
 require_once($IP.'/extensions/DocExport/DocExport.php');
+
+require_once($IP.'/extensions/EtherPadAttached/EtherPadAttached.php');
+$wgEtherPadAttachedPadUrl  = "http://pad.rosalab.com/p/";
+$wgEtherPadAttachedCalcUrl = "http://calc.rosalab.ru/";
+
+
 require_once($IP.'/extensions/CustisScripts/CustisScripts.php');
 require_once($IP.'/extensions/BatchEditor/BatchEditor.php');
 require_once($IP.'/extensions/MarkupBabel/MarkupBabel.php');
@@ -174,6 +180,17 @@ require_once($IP.'/extensions/SlimboxThumbs/SlimboxThumbs.php');
 # Drafts
 require_once($IP.'/extensions/Drafts/Drafts.php');
 $egDraftsAutoSaveWait = 60;   // 1 minute
+
+
+//require_once($IP.'/extensions/EtherpadLite/EtherpadLite.php');
+//$wgEtherpadLiteDefaultPadUrl = 'http://pad.rosalab.com/p';
+//$wgEtherpadLiteUrlWhitelist = array($wgEtherpadLiteDefaultPadUrl);
+//$wgEtherpadLiteDefaultWidth = "800px";
+//$wgEtherpadLiteDefaultHeigth = "800px";
+//$wgEtherpadLiteMonospacedFont   = true;
+//$wgEtherpadLiteShowControls     = true;
+//$wgEtherpadLiteShowLineNumbers  = false;
+//$wgEtherpadLiteShowChat         = false;
 
 # FlvHandler
 require_once($IP.'/extensions/FlvHandler/FlvHandler.php');
