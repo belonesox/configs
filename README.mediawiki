@@ -13,7 +13,7 @@ bugs are fixed and some new features are added.
 == System Requirements ==
 
 Minimal requirements:
-* PHP 5.2 or later.
+* PHP 5.2 or later. 5.3 or later is recommended.
 * Web server. The simplest is to use Apache, nginx with php_fpm also works, IIS and others are also supported in theory.
 * MySQL DBMS version 5 or later.
 * UNIX-like system is preferred.
@@ -173,3 +173,18 @@ and securely configured, not to speak of that it runs on a bad operating system
 made by bad company with bad policies. :)
 
 Use it only if you want to have Mediawiki4Intranet on your local machine with that OS.
+
+== repo.php TODO ==
+
+DEFINITELY:
+* Set up remotes for additional repositories of the same module (i.e. wikimedia for our forks)
+* More flexible setup of readonly/readwrite remotes. I.e. allow to clone some repositories via
+  https and others via ssh, or allow to clone via https, but push via ssh. Maybe via the same
+  mechanism of remotes.
+
+MAYBE:
+* Support automatic calling maintenance/update.php for DB updates
+* Support 'soft update' for the case of added extensions:
+** First update configs dir except *Settings.php
+** Then update the code, then update *Settings.php so missing extension files do not crash the live site.
+*: But maybe it's a bad idea just because updating the live site is a bad idea itself.

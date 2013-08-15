@@ -9,8 +9,9 @@
  * Repo commands:
  *
  * php repo.php help
- * php repo.php [install|update|check] <distname> [<method>] [<destdir>]
+ * php repo.php [install|update|check] [<distname> [<method>] [<destdir>]]
  * php repo.php index
+ * php repo.php export <directory>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,11 +33,17 @@ declare(ticks = 1);
 
 function sigexit()
 {
-    JobControl::seek_to(JobControl::$maxPos);
+    JobControl::reset();
     exit;
 }
-pcntl_signal(SIGINT, 'sigexit');
-pcntl_signal(SIGTERM, 'sigexit');
+
+if (function_exists('pcntl_signal'))
+{
+    pcntl_signal(SIGINT, 'sigexit');
+    pcntl_signal(SIGTERM, 'sigexit');
+    // Reset SIGCHLD handler so we can reap children by ourselves
+    pcntl_signal(SIGCHLD, function() {});
+}
 
 Repo::run($argv);
 sigexit();
@@ -54,8 +61,29 @@ class Repo
     var $dest_dir;
     var $no_refresh;
     var $parallel = 10;
+    var $export_dir;
 
     static $scriptName;
+
+    static $boolArgs = array(
+        '-n' => 'no_refresh',
+        '--no-refresh' => 'no_refresh',
+    );
+    static $strArgs = array(
+        '-j' => 'parallel',
+        '--jobs' => 'parallel',
+        '-s' => 'dist_name',
+        '--dist' => 'dist_name',
+        '-m' => 'method',
+        '--method' => 'method',
+        '-d' => 'dest_dir',
+        '--dest' => 'dest_dir',
+        '-e' => 'export_dir',
+        '--export' => 'export_dir',
+    );
+    static $validOptions = array(
+        'dist_name', 'method', 'dest_dir', 'no_refresh', 'parallel', 'export_dir',
+    );
 
     /**
      * Console entry point
@@ -66,6 +94,9 @@ class Repo
         $cmd = '';
         self::$scriptName = array_shift($argv);
 
+        $strArgs = array(
+            array('-n', '--no-refresh', 'no_refresh')
+        );
         for ($i = 0; $i < count($argv); $i++)
         {
             $arg = $argv[$i];
@@ -74,32 +105,47 @@ class Repo
                 $cmd = 'help';
                 break;
             }
-            elseif ($arg === '-n' || $arg === '--no-refresh')
+            elseif (isset(self::$boolArgs[$arg]))
             {
-                $options['no_refresh'] = true;
+                $options[self::$boolArgs[$arg]] = true;
             }
-            elseif ($arg === '-j' || $arg === '--jobs')
+            elseif (isset(self::$strArgs[$arg]))
             {
-                $options['parallel'] = $argv[++$i];
+                $options[self::$strArgs[$arg]] = $argv[++$i];
             }
             elseif (!$cmd)
             {
                 $cmd = $arg;
             }
-            elseif (!isset($options['dist_name']))
+            elseif ($cmd === 'install' || $cmd === 'update' || $cmd === 'check')
             {
-                $options['dist_name'] = $arg;
+                if (!isset($options['dist_name']))
+                {
+                    $options['dist_name'] = $arg;
+                }
+                elseif (!isset($options['method']))
+                {
+                    $options['method'] = $arg;
+                }
+                elseif (!isset($options['dest_dir']))
+                {
+                    $options['dest_dir'] = $arg;
+                }
             }
-            elseif (!isset($options['method']))
+            elseif ($cmd === 'export')
             {
-                $options['method'] = $arg;
-            }
-            elseif (!isset($options['dest_dir']))
-            {
-                $options['dest_dir'] = $arg;
+                if (!isset($options['export_dir']))
+                {
+                    $options['export_dir'] = $arg;
+                }
             }
         }
 
+        if ($cmd === 'export' && !isset($options['export_dir']))
+        {
+            print "Export command requires a directory argument.\n";
+            exit(10);
+        }
         if ($cmd === 'install')
         {
             $cmd = 'update';
@@ -108,7 +154,7 @@ class Repo
         {
             self::printHelp();
         }
-        elseif ($cmd === 'update' || $cmd === 'check' || $cmd == 'index')
+        elseif ($cmd === 'update' || $cmd === 'check' || $cmd == 'index' || $cmd == 'export')
         {
             $repo = new Repo($options);
             $repo->$cmd();
@@ -133,12 +179,13 @@ for faster updates.
 
 USAGE:
 
-php $s [OPTIONS] install|update <distname> [<method> [<dest_dir>]]
+php $s [OPTIONS] install|update [<distname> [<method> [<dest_dir>]]]
     Install/update distribution <distname> using <method> (default 'ro').
-    Optionally set destination to <dest_dir> (relative to $dir).
-    Update is fast: first configuration is resreshed from the repository,
-    then modules for which revision in the local index differs
-    from revision in the distribution index are updated.
+    Optionally set destination to <dest_dir>.
+    Parameters may be passed in line or using OPTIONS (see below).
+    Update is fast: it refreshes configuration from the repository,
+    then updates only modules for which revision in the local index
+    differs from revision in the distribution index.
 
 php $s [OPTIONS] check [<distname> [<method> [<dest_dir>]]]
     Force update of all modules of last installed distribution.
@@ -146,12 +193,24 @@ php $s [OPTIONS] check [<distname> [<method> [<dest_dir>]]]
 php $s index
     Save currently checked out revisions into the distribution index.
 
+php $s export <directory>
+    Export the whole distribution to <directory>.
+
 OPTIONS:
 
 -n or --no-refresh
     Do not refresh configuration repository before running the command.
 -j N or --jobs N
     Run maximum N jobs in parallel (default is 10).
+-s DIST or --dist DIST
+    Use distribution DIST.
+-m METHOD or --method METHOD.
+    Use method METHOD.
+-d DIR or --dest DIR
+    Install/update to DIR directory.
+-e E or --export E
+    Sets E as the export location. Also if used with install or update
+    runs export after it.
 
 Supported revision control systems (vcs/method):
     git/ro: fast readonly clones without full history (for installation)
@@ -164,7 +223,7 @@ Supported revision control systems (vcs/method):
      */
     function __construct(array $options)
     {
-        foreach (array('dist_name', 'method', 'dest_dir', 'no_refresh', 'parallel') as $k)
+        foreach (self::$validOptions as $k)
         {
             if (isset($options[$k]))
             {
@@ -172,6 +231,11 @@ Supported revision control systems (vcs/method):
             }
         }
         $this->cfg_dir = dirname(__FILE__);
+        if ($this->dest_dir)
+        {
+            // Remember relative destination directories
+            $this->dest_dir = self::abs2rel($this->dest_dir, $this->cfg_dir);
+        }
         $this->parse_localindex();
         if (!$this->dist_name)
         {
@@ -187,12 +251,15 @@ Supported revision control systems (vcs/method):
      */
     function __destruct()
     {
-        $this->localindex['params'] = array(
-            'dest_dir' => $this->dest_dir,
-            'method' => $this->method,
-            'dist' => $this->dist_name,
-        );
-        write_ini_file($this->localindex_file, $this->localindex);
+        if ($this->localindex_file)
+        {
+            $this->localindex['params'] = array(
+                'dest_dir' => $this->dest_dir,
+                'method' => $this->method,
+                'dist' => $this->dist_name,
+            );
+            write_ini_file($this->localindex_file, $this->localindex);
+        }
         if ($this->distindex)
         {
             write_ini_file($this->distindex_file, $this->distindex);
@@ -259,6 +326,31 @@ Supported revision control systems (vcs/method):
         if ($path === '')
         {
             $path = '.';
+        }
+        return $path;
+    }
+
+    /**
+     * Convert absolute path $path to one being relative to $ref_path
+     */
+    static function abs2rel($path, $ref_path)
+    {
+        $p = explode('/', realpath($path));
+        $r = explode('/', realpath($ref_path));
+        $np = count($p);
+        $nr = count($r);
+        $i = 0;
+        while ($np > $i && $nr > $i && $p[$i] === $r[$i])
+        {
+            $i++;
+        }
+        if ($i)
+        {
+            $path = str_repeat('../', $nr-$i) . implode('/', array_slice($p, $i));
+            if (substr($path, -1) == '/')
+            {
+                $path = substr($path, 0, -1);
+            }
         }
         return $path;
     }
@@ -331,21 +423,23 @@ Supported revision control systems (vcs/method):
     {
         if (!$this->dest_dir && ''.$this->dest_dir !== '0')
         {
-            $this->dest_dir = $this->cfg_dir;
+            $this->dest_dir = '../';
         }
-        if (!file_exists($this->dest_dir))
+        $dest = realpath($this->dest_dir);
+        if (!file_exists($dest))
         {
-            mkdir($this->dest_dir, 0777, true);
+            mkdir($dest, 0777, true);
         }
-        if (!is_dir($this->dest_dir))
+        if (!is_dir($dest))
         {
-            print "Destination directory {$this->dest_dir} is not a directory, exiting\n";
+            print "Destination directory $dest is not a directory, exiting\n";
             exit(3);
         }
-        $this->dest_dir = realpath($this->dest_dir);
         foreach ($this->dist as $path => &$cfg)
         {
-            $cfg['path'] = $this->dest_dir.'/'.$path;
+            $cfg['path'] = $dest.'/'.$path;
+            $cfg['rel_path'] = $this->dest_dir.'/'.$path;
+            $cfg['export_path'] = $this->export_dir.'/'.$path;
         }
     }
 
@@ -354,8 +448,9 @@ Supported revision control systems (vcs/method):
      * @param $path Path like in distribution index
      * @param $rev Revision
      */
-    function setrev($path, $rev)
+    function setrev($path, $rev, $cfg)
     {
+        $ik = $cfg['rel_path'];
         if ($rev)
         {
             if (!isset($this->distindex[$path]) || $this->distindex[$path] !== $rev)
@@ -363,8 +458,9 @@ Supported revision control systems (vcs/method):
                 JobControl::print_line_for($path, "latest version updated to $rev");
                 $this->distindex[$path] = $rev;
             }
-            $this->localindex['revs'][$this->dist[$path]['path']] = $rev;
+            $this->localindex['revs'][$ik] = $rev;
         }
+        $this->localindex['repo'][$ik] = $cfg['repo'];
     }
 
     /**
@@ -377,19 +473,34 @@ Supported revision control systems (vcs/method):
         {
             // Refresh configuration repository
             $selftime = filemtime(__FILE__);
+            $wc = '--work-tree="'.$this->cfg_dir.'" --git-dir="'.$this->cfg_dir.'/.git"';
             if (file_exists($this->cfg_dir.'/.git/shallow'))
             {
+                // Guess branch of configuration repository
+                $branch = 'master';
+                $rev = $this->getrev_git_rw(array('path' => $this->cfg_dir));
+                if ($rev)
+                {
+                    $s = JobControl::shell_exec("git $wc show-ref");
+                    foreach (explode("\n", $s) as $line)
+                    {
+                        if (substr($line, 0, 52) === $rev.' refs/heads/')
+                        {
+                            $branch = trim(substr($line, 52));
+                            break;
+                        }
+                    }
+                }
                 // Read-only update of configuration repository
-                self::update_git_ro(array('path' => $this->cfg_dir), false, false);
+                $this->update_git_ro(array('path' => $this->cfg_dir, 'branch' => $branch), false, false);
             }
             else
             {
                 // Pull to configuration repository and check for conflicts
-                chdir($this->cfg_dir);
                 $code = JobControl::spawn(
-                    'git checkout -- '.$this->dist_name.'-index.ini'.
-                    ' && git pull'.
-                    ' && git checkout --theirs -- '.$this->dist_name.'-index.ini',
+                    "git $wc checkout -- {$this->dist_name}-index.ini".
+                    " && git $wc pull".
+                    " && git $wc checkout --theirs -- {$this->dist_name}-index.ini",
                     false, false
                 );
                 if ($code)
@@ -397,7 +508,7 @@ Supported revision control systems (vcs/method):
                     print "You have conflicting changes in config repository, do 'git pull' manually\n";
                     exit(9);
                 }
-                $status = JobControl::shell_exec('git status --porcelain -uno');
+                $status = JobControl::shell_exec("git $wc status --porcelain -uno");
                 foreach (explode("\n", $status) as $line)
                 {
                     $st = explode(' ', trim($line));
@@ -419,7 +530,7 @@ Supported revision control systems (vcs/method):
                 global $argv;
                 print __FILE__." changed, restarting\n";
                 $run = $argv;
-                if (substr($_SERVER['_'], -3) != 'php')
+                if (substr($_SERVER['_'], -8) != 'repo.php')
                 {
                     array_unshift($run, $_SERVER['_']);
                 }
@@ -446,10 +557,10 @@ Supported revision control systems (vcs/method):
             $suff = $cfg['vcs'].'_'.$this->method;
             $getrev = "getrev_$suff";
             $error = true;
-            $rev = self::$getrev($cfg, $error);
+            $rev = $this->$getrev($cfg, $error);
             if ($rev)
             {
-                $this->setrev($path, $rev);
+                $this->setrev($path, $rev, $cfg);
             }
             else
             {
@@ -483,12 +594,12 @@ Supported revision control systems (vcs/method):
                 // FIXME remove hardcode
                 if ($this->method == 'ro')
                 {
-                    $check = !isset($this->localindex['revs'][$cfg['path']]) ||
-                        $this->localindex['revs'][$cfg['path']] !== $this->distindex[$path];
+                    $check = !isset($this->localindex['revs'][$cfg['rel_path']]) ||
+                        $this->localindex['revs'][$cfg['rel_path']] !== $this->distindex[$path];
                 }
                 else
                 {
-                    $rev = self::$getrev($cfg);
+                    $rev = $this->$getrev($cfg);
                     $check = !$rev || $this->distindex[$path] !== $rev;
                 }
             }
@@ -496,7 +607,7 @@ Supported revision control systems (vcs/method):
             {
                 if ($rev === NULL)
                 {
-                    $rev = self::$getrev($cfg);
+                    $rev = $this->$getrev($cfg);
                 }
                 $updated = true;
                 $self = $this;
@@ -504,8 +615,8 @@ Supported revision control systems (vcs/method):
                 {
                     if (!$code)
                     {
-                        $rev = Repo::$getrev($cfg);
-                        $self->setrev($path, $rev);
+                        $rev = $self->$getrev($cfg);
+                        $self->setrev($path, $rev, $cfg);
                     }
                 };
                 if ($rev)
@@ -516,7 +627,7 @@ Supported revision control systems (vcs/method):
                 {
                     $m = "install_$suff";
                 }
-                self::$m($cfg, $cb, $path);
+                $this->$m($cfg, $cb, $path);
             }
             JobControl::do_input();
         }
@@ -527,6 +638,10 @@ Supported revision control systems (vcs/method):
         {
             print "Everything up-to-date.\n";
         }
+        if ($this->export_dir)
+        {
+            $this->export(true);
+        }
     }
 
     /**
@@ -535,6 +650,48 @@ Supported revision control systems (vcs/method):
     function check()
     {
         $this->update(true);
+    }
+
+    /**
+     * Export command
+     */
+    function export($no_init = false)
+    {
+        JobControl::reset();
+        JobControl::init(1);
+        if (!$no_init)
+        {
+            $this->load_config();
+        }
+        if (!file_exists($this->export_dir))
+        {
+            @mkdir($this->export_dir, 0777, true);
+        }
+        if (!is_dir($this->export_dir) || !is_writable($this->export_dir))
+        {
+            print "Error: {$this->export_dir} is not a writable directory\n";
+            exit(-10);
+        }
+        $this->export_dir = realpath($this->export_dir);
+        if (is_dir($this->cfg_dir.'/.git'))
+        {
+            $rel = self::abs2rel($this->cfg_dir, $this->dest_dir);
+            $this->export_git_rw(array(
+                'export_path' => $this->export_dir.'/'.$rel,
+                'path' => $this->cfg_dir,
+            ), false, $rel);
+        }
+        else
+        {
+            print "Error: export only works for git checked out copy, not for a tarball\n";
+            exit(-10);
+        }
+        foreach ($this->dist as $path => $cfg)
+        {
+            $m = 'export_'.$cfg['vcs'].'_'.$this->method;
+            $this->$m($cfg, false, $path);
+        }
+        print "\nClean copy ready in {$this->export_dir}.\n";
     }
 
     /**
@@ -566,21 +723,25 @@ Supported revision control systems (vcs/method):
 
     /**
      * Version control system support functions.
-     * For each VCS+method, three functions must be defined:
+     * For each VCS+method, 4 functions must be defined:
      *
-     * install_<vcs>_<method>($cfg):
-     *     Initially install a module specified by $cfg.
-     * update_<vcs>_<method>($cfg):
-     *     Update a module.
-     * getrev_<vcs>_<method>($cfg):
+     * install_<vcs>_<method>($cfg, $cb, $name):
+     *     Initially install a module specified by $cfg. Call callback $cb after finishing it.
+     *     Use $name as the name for all spawned processes (see JobControl). Return nothing.
+     * update_<vcs>_<method>($cfg, $cb, $name):
+     *     Update a module. Same params.
+     * export_<vcs>_<method>($cfg, $cb, $name):
+     *     Export clean module from the work copy to directory $cfg['export_path']. Same params.
+     * getrev_<vcs>_<method>($cfg, &$error = NULL):
      *     Return current revision of an installed module.
+     *     In case of error, return false and save error text into &$error.
      */
 
     /**
      * Shallow git checkout (2 last commits, no full history)
      */
 
-    static function install_git_ro($cfg, $cb, $name)
+    function install_git_ro($cfg, $cb, $name)
     {
         $branch = !empty($cfg['branch']) ? $cfg['branch'] : 'master';
         $dest = $cfg['path'];
@@ -595,27 +756,47 @@ Supported revision control systems (vcs/method):
             $cb, $name);
     }
 
-    static function update_git_ro($cfg, $cb, $name)
+    function update_git_ro($cfg, $cb, $name)
     {
-        $branch = !empty($cfg['branch']) ? $cfg['branch'] : 'master';
         $dest = $cfg['path'];
+        $branch = !empty($cfg['branch']) ? $cfg['branch'] : 'master';
+        $updateRepo = '';
+        if (!empty($cfg['repo']))
+        {
+            // Support call from update() function (without repo param)
+            $updateRepo = "git --git-dir=\"$dest/.git\" config --replace-all remote.origin.url \"".$cfg['repo']."\" && ";
+            if (file_exists("$dest/.git/shallow"))
+            {
+                // Rebuild shallow commit list - without it git can emit 'did not find object for shallow XXX'
+                // error, and github-via-https:// just hangs.
+                $updateRepo .=
+                    "(git --git-dir=\"$dest/.git\" log --decorate | grep \"^commit .* (grafted)\" | cut -d ' ' -f 2 > \"$dest/.git/shallow1\") && ".
+                    "mv \"$dest/.git/shallow1\" \"$dest/.git/shallow\" &&";
+            }
+        }
         JobControl::spawn(
-            "git --git-dir=\"$dest/.git\" fetch --progress --depth=1 origin \"$branch\"".
+            $updateRepo.
+            " git --git-dir=\"$dest/.git\" fetch --progress --depth=1 origin \"$branch\"".
             " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" checkout --force FETCH_HEAD".
             " && git --git-dir=\"$dest/.git\" branch --force \"$branch\" FETCH_HEAD",
             $cb, $name);
     }
 
-    static function getrev_git_ro($cfg, &$error = NULL)
+    function getrev_git_ro($cfg, &$error = NULL)
     {
-        return self::getrev_git_rw($cfg, $error);
+        return $this->getrev_git_rw($cfg, $error);
+    }
+
+    function export_git_ro($cfg, $cb, $name)
+    {
+        $this->export_git_rw($cfg, $cb, $name);
     }
 
     /**
      * Normal git checkout - with full history
      */
 
-    static function install_git_rw($cfg, $cb, $name)
+    function install_git_rw($cfg, $cb, $name)
     {
         $branch = !empty($cfg['branch']) ? $cfg['branch'] : 'master';
         $dest = $cfg['path'];
@@ -639,15 +820,15 @@ Supported revision control systems (vcs/method):
         }
     }
 
-    static function update_git_rw($cfg, $cb, $name)
+    function update_git_rw($cfg, $cb, $name)
     {
         $dest = $cfg['path'];
         $branch = !empty($cfg['branch']) ? $cfg['branch'] : 'master';
+        $repo = $cfg['repo'];
         if (file_exists("$dest/.git/shallow"))
         {
             // Upgrade readonly checkout to a readwrite one,
             // i.e. change URL and deepen the shallow clone
-            $repo = $cfg['repo'];
             JobControl::spawn(
                 "git --git-dir=\"$dest/.git\" config --replace-all remote.origin.url \"$repo\"".
                 " ; git --git-dir=\"$dest/.git\" config --replace-all remote.origin.fetch \"+refs/heads/*:refs/remotes/origin/*\"".
@@ -657,19 +838,23 @@ Supported revision control systems (vcs/method):
                 " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" checkout --force \"$branch\"",
                 $cb, $name);
         }
-        elseif ($cfg['rebase'])
+        elseif (!empty($cfg['rebase']))
         {
             // "Conditional rebase" for patch series (when A-B-C-D-E-F may become A-B-C-X-Y-Z)
             // In this case if master was F and equal to origin/master, master will be just reset to Z
             // If master was F and origin/master was E, F will be rebased on the top of Z (this means F is a new patch)
             // If master did not contain origin/master at all, update will fail
-            $contains = JobControl::shell_exec("git --git-dir=\"$dest/.git\" branch --list --contains \"origin/$branch\" \"$branch\"");
+            $contains = JobControl::shell_exec(
+                "git --git-dir=\"$dest/.git\" branch --list --contains \"origin/$branch\" \"$branch\"".
+                " ; git --git-dir=\"$dest/.git\" branch --list --all --contains \"$branch\" \"origin/$branch\""
+            );
             if ($contains)
             {
                 $rev = trim(JobControl::shell_exec("git --git-dir=\"$dest/.git\" rev-parse \"origin/$branch\""));
                 JobControl::spawn(
-                    "git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" fetch --progress origin".
-                    "&& git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" rebase --onto \"origin/$branch\" $rev \"$branch\"",
+                    "git --git-dir=\"$dest/.git\" config --replace-all remote.origin.url \"$repo\"".
+                    " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" fetch --progress origin".
+                    " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" rebase --onto \"origin/$branch\" $rev \"$branch\"",
                     $cb, $name);
             }
             else
@@ -683,13 +868,15 @@ Supported revision control systems (vcs/method):
         {
             // Normal update
             JobControl::spawn(
-                "git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" pull --progress origin".
-                "; git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" checkout \"$branch\"",
+                "git --git-dir=\"$dest/.git\" config --replace-all remote.origin.url \"$repo\"".
+                " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" fetch --progress origin".
+                " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" checkout \"$branch\"".
+                " && git --git-dir=\"$dest/.git\" --work-tree=\"$dest\" merge \"origin/$branch\"",
                 $cb, $name);
         }
     }
 
-    static function getrev_git_rw($cfg, &$error = NULL)
+    function getrev_git_rw($cfg, &$error = NULL)
     {
         $dest = $cfg['path'];
         $r = trim(JobControl::shell_exec("git --git-dir=\"$dest/.git\" rev-parse HEAD 2>&1"));
@@ -702,6 +889,16 @@ Supported revision control systems (vcs/method):
             return '';
         }
         return $r;
+    }
+
+    function export_git_rw($cfg, $cb, $name)
+    {
+        $dest = $cfg['path'];
+        $exp = $cfg['export_path'];
+        @mkdir($exp, 0777, true);
+        JobControl::spawn(
+            "git --git-dir=\"$dest/.git\" --work-tree=\"$exp\" reset --hard",
+            $cb, $name);
     }
 }
 
@@ -733,12 +930,20 @@ class JobControl
         }
     }
 
-    static function reap_children($pid = -1)
+    static function reset()
+    {
+        self::seek_to(self::$maxPos);
+        self::$maxPos = self::$curPos = 0;
+        self::$positions = array();
+        self::$lastStr = array();
+    }
+
+    static function reap_children($needpid = -1)
     {
         $code = 0;
         // Reap finished children
         $stopped = 0;
-        while (($pid = pcntl_waitpid($pid, $st, WNOHANG)) > 0)
+        while (($pid = pcntl_waitpid($needpid, $st, WNOHANG)) > 0)
         {
             $code = pcntl_wexitstatus($st);
             if (!empty(self::$childProcs[$pid]))
@@ -862,7 +1067,7 @@ class JobControl
             $n[(int)$proc['out']] = $pid;
             $n[(int)$proc['err']] = $pid;
         }
-        stream_select($r, $w, $x, 0);
+        stream_select($r, $w, $x, 0, 500000);
         foreach ($r as $desc)
         {
             self::input_from($desc, self::$childProcs[$n[(int)$desc]]);
