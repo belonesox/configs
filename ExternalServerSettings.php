@@ -1,7 +1,7 @@
 <?php
 
 // MediaWiki4Intranet configuration base for external (WWW) installations
-// (c) Stas Fomin, Vitaliy Filippov 2008-2012
+// (c) Stas Fomin, Vitaliy Filippov 2008-2013
 
 require_once(dirname(__FILE__).'/ServerSettings.php');
 
@@ -44,9 +44,17 @@ $wgGroupPermissions['sysop']['createpage'] = true;
 $wgGroupPermissions['sysop']['createtalk'] = true;
 $wgGroupPermissions['bureaucrat']['createpage'] = true;
 $wgGroupPermissions['bureaucrat']['createtalk'] = true;
-$wgAutoConfirmAge = 86400 * 4; # Four days times 86400 seconds/day
 $wgEmailConfirmToEdit = true;
 
-require_once("extensions/ListFeed/ListFeed.php");
+require_once('extensions/ListFeed/ListFeed.php');
 $egListFeedFeedUrlPrefix = '/rss';
 $egListFeedFeedDir = $IP.'/rss';
+
+require_once('extensions/ConfirmEdit/ConfirmEdit.php');
+require_once('extensions/WikiKCaptcha/WikiKCaptcha.php');
+$wgCaptchaClass = 'WikiKCaptcha';
+
+require_once('extensions/SimpleAntiSpamReg/SimpleAntiSpamReg.php');
+
+// In bad cases, use the following:
+//$wgAutoConfirmAge = 86400 * 4; # User must wait 4 days after registration before editing

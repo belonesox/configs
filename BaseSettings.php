@@ -86,6 +86,25 @@ $wgLanguageCode = "ru";
 $wgSMTP = false;
 $wgShowExceptionDetails = true;
 
+// Put settings (public static field changes) for autoloaded classes here
+$wgClassSettings = array();
+if (version_compare(PHP_VERSION, '5.3', '>='))
+{
+    function wfAutoloadClassSettings($class)
+    {
+        global $wgClassSettings;
+        if (isset($wgClassSettings[$class]))
+        {
+            AutoLoader::autoload($class);
+            foreach ($wgClassSettings[$class] as $name => $value)
+            {
+                $class::$$name = $value;
+            }
+        }
+    }
+    spl_autoload_register('wfAutoloadClassSettings', true, true);
+}
+
 require_once($IP.'/extensions/ParserFunctions/ParserFunctions.php');
 $wgPFStringLengthLimit = 4000;
 $wgPFEnableStringFunctions = true;
@@ -171,15 +190,19 @@ require_once($IP.'/extensions/SimpleForms/SimpleForms.php'); /* useful at least 
 require_once($IP.'/extensions/WhoIsWatching/WhoIsWatching.php');
 require_once($IP.'/extensions/Polls/poll.php');
 require_once($IP.'/extensions/Shortcuts/Shortcuts.php');
+require_once($IP.'/extensions/TopCategoryLinks/TopCategoryLinks.php');
 require_once($IP.'/extensions/RemoveConfidential/RemoveConfidential.php');
 require_once($IP.'/extensions/CustomToolbox/CustomToolbox.php');
 require_once($IP.'/extensions/CustomSidebar/CustomSidebar.php');
 require_once($IP.'/extensions/FavRate/FavRate.php');
 require_once($IP.'/extensions/SlimboxThumbs/SlimboxThumbs.php');
+require_once($IP.'/extensions/Spoil/Spoil.php');
+require_once($IP.'/extensions/Duplicator/Duplicator.php');
+require_once($IP.'/extensions/PopupWhatlinkshere/PopupWhatlinkshere.php');
 
 # Drafts
 require_once($IP.'/extensions/Drafts/Drafts.php');
-$egDraftsAutoSaveWait = 60;   // 1 minute
+$egDraftsAutoSaveWait = 30;   // half a minute
 
 
 //require_once($IP.'/extensions/EtherpadLite/EtherpadLite.php');
@@ -204,6 +227,7 @@ if (!defined('WIKI4INTRANET_DISABLE_SEMANTIC'))
     require_once($IP.'/extensions/SemanticInternalObjects/SemanticInternalObjects.php');
 
     $wgExtensionFunctions[] = 'autoEnableSemantics';
+    $wgClassSettings['SMWResultPrinter']['maxRecursionDepth'] = 15;
     function autoEnableSemantics()
     {
         global $wgServer;
@@ -323,9 +347,6 @@ $wgMaxImageArea = 5000*5000;
 
 // Allow all ?action=raw content types
 $wgAllowedRawCTypes = true;
-
-// Also display categories on the top of page
-$wgCatlinksTop = true;
 
 // Use "wikipedia-like" search box in Vector skin
 $wgDefaultUserOptions['vector-simplesearch'] = true;
