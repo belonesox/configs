@@ -134,6 +134,7 @@ require_once($IP.'/extensions/DocExport/DocExport.php');
 require_once($IP.'/extensions/EtherPadAttached/EtherPadAttached.php');
 $wgEtherPadAttachedPadUrl  = "http://pad.rosalab.com/p/";
 $wgEtherPadAttachedCalcUrl = "http://calc.rosalab.ru/";
+$wgEtherPadAttachedDrawUrl = "http://draw.rosalab.ru/d/";
 
 
 require_once($IP.'/extensions/CustisScripts/CustisScripts.php');
