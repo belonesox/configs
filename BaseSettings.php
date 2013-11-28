@@ -1,7 +1,8 @@
 <?php
 
 // MediaWiki4Intranet configuration base for all MW installations (UNIX, Windows)
-// (c) Stas Fomin, Vitaliy Filippov 2008-2011
+// Contains many useful configuration hints
+// (c) Stas Fomin, Vitaliy Filippov 2008-2013
 
 setlocale(LC_ALL, 'ru_RU.UTF-8');
 setlocale(LC_NUMERIC, 'C');
@@ -21,12 +22,15 @@ $path = array($IP, "$IP/includes", "$IP/includes/specials","$IP/languages");
 set_include_path(implode(PATH_SEPARATOR, $path) . PATH_SEPARATOR . get_include_path());
 
 require_once($IP . '/includes/DefaultSettings.php');
-$wgSitename         = "CustisWiki";
 
-## The URL base path to the directory containing the wiki;
-## defaults for all runtime URL paths are based off of this.
+// Powered by 4intranet icon
+$wgExtensionFunctions[] = 'efPoweredBy4Intranet';
+
+# Default sitename and URL base path
+$wgSitename         = "CustisWiki";
 $wgScriptPath       = "/wiki";
 $wgScriptExtension  = ".php";
+$wgUsePathInfo      = true;
 
 $wgEnableEmail      = false;
 $wgEnableUserEmail  = false;
@@ -77,14 +81,38 @@ $wgFileExtensions = array(
     'djvu', 'pdf', 'xml', 'mm'
 );
 
-$wgAllowCopyUploads     = true;
+// Allow URL uploads
+$wgAllowCopyUploads = true;
+$wgCopyUploadsFromSpecialUpload = true;
 $wgStrictFileExtensions = false;
 
-array_push($wgUrlProtocols,"file://");
+// Do not deny img_auth.php access if wiki has public read permission! (IntraACL may still deny access)
+$wgImgAuthPublicTest = false;
+
+array_push($wgUrlProtocols, "file://");
 $wgLanguageCode = "ru";
 
 $wgSMTP = false;
 $wgShowExceptionDetails = true;
+
+// Put settings (public static field changes) for autoloaded classes here
+$wgClassSettings = array();
+if (version_compare(PHP_VERSION, '5.3', '>='))
+{
+    function wfAutoloadClassSettings($class)
+    {
+        global $wgClassSettings;
+        if (isset($wgClassSettings[$class]))
+        {
+            AutoLoader::autoload($class);
+            foreach ($wgClassSettings[$class] as $name => $value)
+            {
+                $class::$$name = $value;
+            }
+        }
+    }
+    spl_autoload_register('wfAutoloadClassSettings', true, true);
+}
 
 require_once($IP.'/extensions/ParserFunctions/ParserFunctions.php');
 $wgPFStringLengthLimit = 4000;
@@ -151,6 +179,9 @@ require_once($IP.'/extensions/NewPagesEx/NewPagesEx.php');
 require_once($IP.'/extensions/Calendar/Calendar.php');
 require_once($IP.'/extensions/SimpleTable/SimpleTable.php');
 require_once($IP.'/extensions/MagicNumberedHeadings/MagicNumberedHeadings.php');
+// Numbered headings by default for new users
+$wgDefaultUserOptions['wpnumberheadings'] = 1;
+
 require_once($IP.'/extensions/MediaFunctions/MediaFunctions.php');
 require_once($IP.'/extensions/AllowGetParamsInWikilinks/AllowGetParamsInWikilinks.php');
 require_once($IP.'/extensions/WikiBookmarks/WikiBookmarks.php');
@@ -165,15 +196,21 @@ require_once($IP.'/extensions/SimpleForms/SimpleForms.php'); /* useful at least 
 require_once($IP.'/extensions/WhoIsWatching/WhoIsWatching.php');
 require_once($IP.'/extensions/Polls/poll.php');
 require_once($IP.'/extensions/Shortcuts/Shortcuts.php');
+require_once($IP.'/extensions/TopCategoryLinks/TopCategoryLinks.php');
 require_once($IP.'/extensions/RemoveConfidential/RemoveConfidential.php');
 require_once($IP.'/extensions/CustomToolbox/CustomToolbox.php');
 require_once($IP.'/extensions/CustomSidebar/CustomSidebar.php');
 require_once($IP.'/extensions/FavRate/FavRate.php');
 require_once($IP.'/extensions/SlimboxThumbs/SlimboxThumbs.php');
+require_once($IP.'/extensions/Spoil/Spoil.php');
+require_once($IP.'/extensions/Duplicator/Duplicator.php');
+require_once($IP.'/extensions/PopupWhatlinkshere/PopupWhatlinkshere.php');
+require_once($IP.'/extensions/Variables/Variables.php');
+require_once($IP.'/extensions/LinkAutocomplete/LinkAutocomplete.php');
 
 # Drafts
 require_once($IP.'/extensions/Drafts/Drafts.php');
-$egDraftsAutoSaveWait = 60;   // 1 minute
+$egDraftsAutoSaveWait = 30;   // half a minute
 
 # FlvHandler
 require_once($IP.'/extensions/FlvHandler/FlvHandler.php');
@@ -185,8 +222,11 @@ if (!defined('WIKI4INTRANET_DISABLE_SEMANTIC'))
     $smwgNamespaceIndex = 120;
     require_once($IP.'/extensions/SemanticMediaWiki/SemanticMediaWiki.php');
     require_once($IP.'/extensions/SemanticInternalObjects/SemanticInternalObjects.php');
+    $smwgQMaxSize = 128;
+    $smwgQMaxDepth = 16;
 
     $wgExtensionFunctions[] = 'autoEnableSemantics';
+    $wgClassSettings['SMWResultPrinter']['maxRecursionDepth'] = 15;
     function autoEnableSemantics()
     {
         global $wgServer;
@@ -219,6 +259,8 @@ $wgWikilogSearchDropdowns = true;
 $wgWikilogCommentsOnItemPage = true;
 $wgWikilogNumComments = 100;
 $wgWikilogExpensiveLimit = 100;
+# Enable Wikilog-style threaded talks pages everywhere
+$wgWikilogCommentNamespaces = true;
 
 # Namespaces with subpages
 $wgNamespacesWithSubpages += array(
@@ -288,12 +330,14 @@ $wgOpenSearchTemplate  = true;
 // Don't purge recent changes... (keep them for 50 years)
 $wgRCMaxAge = 50 * 365 * 86400;
 
+// No need to restrict Intranet users from these actions
 $wgGroupPermissions['user']['delete'] = true;
 $wgGroupPermissions['user']['undelete'] = true;
 $wgGroupPermissions['user']['movefile'] = true;
 $wgGroupPermissions['user']['upload_by_url'] = true;
 $wgGroupPermissions['user']['import'] = true;
 $wgGroupPermissions['user']['importupload'] = true;
+$wgGroupPermissions['user']['suppressredirect'] = true;
 $wgGroupPermissions['sysop']['deletebatch'] = true;
 
 // Default settings for Sphinx search
@@ -307,9 +351,17 @@ $wgMaxImageArea = 5000*5000;
 // Allow all ?action=raw content types
 $wgAllowedRawCTypes = true;
 
-// Also display categories on the top of page
-$wgCatlinksTop = true;
-
 // Use "wikipedia-like" search box in Vector skin
 $wgDefaultUserOptions['vector-simplesearch'] = true;
 $wgVectorUseSimpleSearch = true;
+
+function efPoweredBy4Intranet()
+{
+    global $wgFooterIcons, $wgScriptPath;
+    $wgFooterIcons['poweredby']['mediawiki4intranet'] = array(
+        'src' => $wgScriptPath.'/configs/logos/poweredby-4intranet.png',
+        'url' => 'http://wiki.4intra.net/MediaWiki4Intranet',
+        'title' => 'Powered by MediaWiki4Intranet extension bundle',
+        'alt' => 'MediaWiki4Intranet',
+    );
+}

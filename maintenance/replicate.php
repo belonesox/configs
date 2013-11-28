@@ -55,6 +55,7 @@ Config file fragment syntax (Replace __Test__ with desired [target] name):
 [__Test__SourceWiki]
 URL=<source wiki url>
 Category=<source category name for selecting pages>
+CategoryWithClosure=<source category name for selecting pages including its subcategories>
 NotCategory=<source category name for replication denial>
 RemoveConfidential=<'yes' or 'no' (default)>
 FullHistory=<'yes' or 'no' (default), 'yes' replicates all page revisions, not only the last one>
@@ -75,12 +76,18 @@ if (!function_exists('sys_get_temp_dir'))
 {
     function sys_get_temp_dir()
     {
-        if($temp = getenv('TMP'))
+        if ($temp = getenv('TMP'))
+        {
             return $temp;
-        if($temp = getenv('TEMP'))
+        }
+        if ($temp = getenv('TEMP'))
+        {
             return $temp;
-        if($temp = getenv('TMPDIR'))
+        }
+        if ($temp = getenv('TMPDIR'))
+        {
             return $temp;
+        }
         $temp = tempnam(__FILE__, '');
         if (file_exists($temp))
         {
@@ -119,14 +126,22 @@ function replicator()
                 $since_time = date("Y-m-d H:i:s", $since_time);
             }
             else
+            {
                 $since_time = $m[1];
+            }
         }
         elseif ($argv[$i] == '-i')
+        {
             $ignore_since_images = false;
+        }
         elseif ($config_file === NULL)
+        {
             $config_file = $argv[$i];
+        }
         else
+        {
             $targets[] = $argv[$i];
+        }
     }
 
     $config = $config_file ? read_config($config_file) : NULL;
@@ -140,7 +155,9 @@ function replicator()
     $cookieJar = dirname(__FILE__)."/cookiejar.txt";
 
     if (!$targets)
+    {
         $targets = array_keys($config);
+    }
     foreach ($targets as $t)
     {
         $CurrentTarget = $t;
@@ -171,13 +188,19 @@ function GET($wiki, $url)
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => $wiki['url'].$url,
+        CURLOPT_SSL_VERIFYPEER => 0,
+        CURLOPT_SSL_VERIFYHOST => 0,
         CURLOPT_COOKIEFILE => $cookieJar,
         CURLOPT_COOKIEJAR => $cookieJar,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS => 10,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_SSL_VERIFYPEER => 0,
     ));
     if (!empty($wiki['basiclogin']) && !empty($wiki['basicpassword']))
+    {
         curl_setopt($curl, CURLOPT_USERPWD, $wiki['basiclogin'].':'.$wiki['basicpassword']);
+    }
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     $content = curl_exec($curl);
     $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -193,13 +216,19 @@ function POST($wiki, $url, $params, $filename = NULL)
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => $wiki['url'].$url,
+        CURLOPT_SSL_VERIFYPEER => 0,
+        CURLOPT_SSL_VERIFYHOST => 0,
         CURLOPT_COOKIEFILE => $cookieJar,
         CURLOPT_COOKIEJAR => $cookieJar,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $params,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_SSL_VERIFYPEER => 0,
     ));
     if ($filename === NULL)
+    {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    }
     else
     {
         $fp = fopen($filename, 'wb');
@@ -221,12 +250,18 @@ function POST($wiki, $url, $params, $filename = NULL)
 function login_into($params, $desc)
 {
     if (empty($params['user']) || empty($params['password']))
+    {
         return '';
+    }
     list($status, $content) = GET($params, '/index.php?title=Special:UserLogin');
     if ($status != 200)
+    {
         throw new ReplicateException("Invalid response status");
+    }
     if (!preg_match('/<input[^<>]*name="wpLoginToken"[^<>]*value="([^"]+)"[^<>]*>/s', $content, $m))
+    {
         throw new ReplicateException("No input name=wpLoginToken found");
+    }
     $token = $m[1];
     list($status, $content) = POST(
         $params, '/index.php?title=Special:UserLogin&action=submitlogin&type=login',
@@ -238,7 +273,9 @@ function login_into($params, $desc)
         )
     );
     if ($status != 302)
+    {
         throw new ReplicateException("Incorrect login (no redirection, status=$status)");
+    }
 }
 
 // Generate export page list from wiki $wiki using $params and $desc as error description
@@ -247,7 +284,9 @@ function page_list_load($wiki, $params)
     $params['addcat'] = 'Add';
     list($status, $content) = POST($wiki, "/index.php?title=Special:Export&action=submit", $params);
     if ($status != 200)
+    {
         throw new ReplicateException("Invalid response status");
+    }
     preg_match('#<textarea[^<>]*>([^<]*)</textarea>#is', $content, $m);
     return trim($m[1]);
 }
@@ -255,43 +294,84 @@ function page_list_load($wiki, $params)
 // Retrieve list of Wiki pages from category $cat,
 // NOT in category $notcat, with all used images and
 // templates by default, but only modified after $modifydate
-function page_list($src, $cat, $notcat = '', $modifydate = '', $ignore_since_images = false)
+function page_list($src, $modifydate = '', $ignore_since_images = false)
 {
     $ignore_since_images = $ignore_since_images && $modifydate !== '';
-    $desc = "Category:$cat";
-    if ($notcat !== '')
-        $desc .= " MINUS category:$notcat";
-    if ($modifydate !== '')
-        $desc .= ", modified after $modifydate";
-    if (!$ignore_since_images)
+    $desc = '';
+    if (!empty($src['categorywithclosure']))
+    {
+        $desc .= "Category:".$src['categorywithclosure']." including all subcategories";
+    }
+    if (!empty($src['category']))
+    {
+        if ($desc)
+        {
+            $desc .= " plus ";
+        }
+        $desc .= "Category:".$src['category'];
+    }
+    if (!empty($src['notcategory']))
+    {
+        $desc .= ", excluding Category:".$src['notcategory'];
+    }
+    if ($ignore_since_images)
+    {
         $desc .= ", with all used images/templates";
+    }
+    if (!empty($modifydate))
+    {
+        $desc .= ", modified after $modifydate";
+    }
+    if (!$ignore_since_images)
+    {
+        $desc .= ", with all used images/templates";
+    }
+    repl_log("Retrieving $desc");
     try
     {
-        $params = array(
-            'catname' => $cat,
-            'notcategory' => $notcat,
+        $common = array(
             'modifydate' => $modifydate,
+            'notcategory' => @$src['notcategory'],
         );
         if (!$ignore_since_images)
-            $params['templates'] = $params['images'] = $params['redirects'] = 1;
-        $text = page_list_load($src, $params);
-        if ($text && $ignore_since_images)
+        {
+            $common['templates'] = $common['images'] = $common['redirects'] = 1;
+        }
+        $pages = '';
+        if (!empty($src['category']))
+        {
+            $params = $common + array(
+                'pages' => $pages,
+                'catname' => $src['category'],
+            );
+            $pages = page_list_load($src, $params);
+        }
+        if (!empty($src['categorywithclosure']))
+        {
+            $params = $common + array(
+                'pages' => $pages,
+                'catname' => $src['categorywithclosure'],
+                'closure' => 1,
+            );
+            $pages = page_list_load($src, $params);
+        }
+        if ($pages && $ignore_since_images)
         {
             // Add templates, images and redirects in a separate request, without passing modifydate
-            $text = page_list_load($src, array(
-                'notcategory' => $notcat,
+            $pages = page_list_load($src, array(
+                'pages' => $pages,
+                'notcategory' => @$src['notcategory'],
                 'templates' => 1,
                 'images' => 1,
                 'redirects' => 1,
-                'pages' => $text,
             ));
         }
     }
     catch (Exception $e)
     {
-        throw new ReplicateException("Load page list from $desc: $e");
+        throw new ReplicateException("Page list loading failed: $e");
     }
-    return $text;
+    return $pages;
 }
 
 function replicate($src, $dest)
@@ -300,10 +380,12 @@ function replicate($src, $dest)
     // Login into source wiki
     login_into($src, 'source wiki');
     // Read page list for replication
-    $text = page_list($src, $src['category'], isset($src['notcategory']) ? $src['notcategory'] : false,
-        $since_time, $ignore_since_images);
+    $text = page_list($src, $since_time, $ignore_since_images);
     if (!$text)
+    {
         throw new ReplicateException("No pages need replication in source wiki");
+    }
+    repl_log(substr_count($text, "\n")." pages listed");
     $ts = microtime(true);
     // Read export XML / multipart file
     $fn = tempnam(sys_get_temp_dir(), 'imp');
@@ -315,12 +397,18 @@ function replicate($src, $dest)
         'curonly' => 1,
     );
     if (empty($src['removeconfidential']))
+    {
         $params['confidential'] = true;
+    }
     if (empty($src['fullhistory']))
+    {
         $params['curonly'] = true;
+    }
     $status = POST($src, "/index.php?title=Special:Export&action=submit", $params, $fn);
     if ($status != 200)
+    {
         throw new ReplicateException("Could not retrieve export archive");
+    }
     $tx = microtime(true);
     repl_log(sprintf("Retrieved %d bytes in %.2f seconds", filesize($fn), $tx-$ts));
     // Login into destination wiki
@@ -328,7 +416,9 @@ function replicate($src, $dest)
     // Retrieve token for importing
     list($status, $text) = GET($dest, "/index.php?title=Special:Import");
     if ($status != 200)
+    {
         throw new ReplicateException("Could not retrieve Special:Import page");
+    }
     preg_match('/<input([^<>]*name="editToken"[^<>]*)>/is', $text, $m);
     if (!$m)
     {
@@ -344,9 +434,13 @@ function replicate($src, $dest)
         'xmlimport' => '@'.$fn,
     ));
     if ($status != 200)
+    {
         throw new ReplicateException("Could not import");
+    }
     if (preg_match('/<p[^<>]*class\s*=\s*[\"\']?error[^<>]*>\s*(.*?)\s*<\/p\s*>/is', $text, $m))
+    {
         throw new ReplicateException("Could not import: $m[1]");
+    }
     $tp = microtime(true);
     repl_log(sprintf("Imported in %.2f seconds", $tp-$tx));
     // Extract the import report
@@ -355,7 +449,9 @@ function replicate($src, $dest)
     {
         $report = substr($text, $m[0][1]+strlen($m[0][0]));
         if (($p = stripos($report, '</ul')) !== false)
+        {
             $report = substr($report, 0, $p);
+        }
         $report = str_replace('&nbsp;', ' ', $report);
         $report = preg_replace('/\s+/', ' ', $report);
         $report = preg_replace('/<li[^<>]*>/', "\n", $report);
@@ -363,7 +459,9 @@ function replicate($src, $dest)
         $report = trim(html_entity_decode($report));
     }
     if ($report === '')
+    {
         throw new ReplicateException("Could not replicate, no import report found in response content:\n$text");
+    }
     repl_log("Report:\n$report");
     unlink($fn);
 }
@@ -376,7 +474,9 @@ function read_config($file)
 {
     $fp = fopen($file, 'r');
     if (!$fp)
+    {
         return NULL;
+    }
     $cfg = array();
     $current = &$cfg;
     $is_full = array();
@@ -385,15 +485,21 @@ function read_config($file)
         $s = trim($s);
         $s = preg_replace('/(^|\s+)#.*$/s', '', $s);
         if (!$s)
+        {
             continue;
+        }
         if (preg_match('/^\s*\[([^\]]*)(Source|Destination)Wiki\]\s*$/is', $s, $m))
         {
             $target = strtolower($m[1]);
             $key = strtolower($m[2]) == 'source' ? 'src' : 'dest';
             if (!empty($cfg[$target][$key == 'src' ? 'dest' : 'src']))
+            {
                 $is_full[$target] = true;
+            }
             if (empty($cfg[$target][$key]))
+            {
                 $cfg[$target][$key] = array();
+            }
             $current = &$cfg[$target][$key];
         }
         elseif (preg_match('/^\s*([^=]*[^\s=])\s*=\s*(.*)/is', $s, $m))
@@ -401,7 +507,9 @@ function read_config($file)
             $k = strtolower($m[1]);
             $v = $m[2];
             if ($k == 'url')
+            {
                 $v = rtrim($v, '/');
+            }
             elseif ($k == 'fullhistory' || $k == 'removeconfidential')
             {
                 $v = strtolower($v);
@@ -412,8 +520,12 @@ function read_config($file)
     }
     fclose($fp);
     foreach ($cfg as $k => $v)
+    {
         if (!$is_full[$k])
+        {
             unset($cfg[$k]);
+        }
+    }
     return $cfg;
 }
 

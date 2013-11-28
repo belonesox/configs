@@ -1,7 +1,7 @@
 <?php
 
 // MediaWiki4Intranet configuration base for external (WWW) installations
-// (c) Stas Fomin, Vitaliy Filippov 2008-2012
+// (c) Stas Fomin, Vitaliy Filippov 2008-2013
 
 require_once(dirname(__FILE__).'/ServerSettings.php');
 
@@ -20,7 +20,7 @@ $wgArticlePath = "/$1";
 #
 # Подробнее см. http://wiki.4intra.net/Mediawiki4Intranet, секция "Короткие URL"
 
-#require_once("$IP/extensions/OpenID/OpenID.setup.php");
+require_once("$IP/extensions/OpenID/OpenID.setup.php");
 
 $wgCookieExpiration = 30 * 86400;
 
@@ -55,3 +55,12 @@ require_once("extensions/ListFeed/ListFeed.php");
 
 $egListFeedFeedUrlPrefix = '/rss';
 $egListFeedFeedDir = $IP.'/rss';
+
+require_once('extensions/ConfirmEdit/ConfirmEdit.php');
+require_once('extensions/WikiKCaptcha/WikiKCaptcha.php');
+$wgCaptchaClass = 'WikiKCaptcha';
+
+require_once('extensions/SimpleAntiSpamReg/SimpleAntiSpamReg.php');
+
+// In bad cases, use the following:
+//$wgAutoConfirmAge = 86400 * 4; # User must wait 4 days after registration before editing
