@@ -516,6 +516,8 @@ Supported revision control systems (vcs/method):
             else
             {
                 // Pull to configuration repository and check for conflicts
+                print "git $wc checkout -- {$this->dist_name}-index.ini";
+                print "git $wc pull --ff-only";
                 $code = JobControl::spawn(
                     "git $wc checkout -- {$this->dist_name}-index.ini 2>/dev/null".
                     " ; git $wc pull --ff-only".
