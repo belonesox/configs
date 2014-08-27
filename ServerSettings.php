@@ -2,7 +2,6 @@
 
 // MediaWiki4Intranet configuration base for internal UNIX installations
 // (c) Stas Fomin, Vitaliy Filippov 2008-2011
-
 require_once(dirname(__FILE__).'/BaseSettings.php');
 
 $wgPageShowWatchingUsers = true;
@@ -15,16 +14,6 @@ $wgEnotifUserTalk      = true; // UPO
 $wgEnotifWatchlist     = true; // UPO
 $wgEmailAuthentication = true;
 $wgEnotifMinorEdits    = true;
-
-$wgEmergencyContact    = "stas@custis.ru";
-$wgPasswordSender      = "wiki-daemon@custis.ru";
-
-$wgAllowExternalImages     = true;
-$wgAllowExternalImagesFrom = array(
-    'http://penguin.office.custis.ru/',
-    'http://svn.office.custis.ru/',
-    'http://plantime.office.custis.ru/'
-);
 
 // Bug 57350 - PDF and Djvu (UNIX only)
 require_once($IP.'/extensions/PdfHandler/PdfHandler.php');

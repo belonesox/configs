@@ -13,7 +13,7 @@ bugs are fixed and some new features are added.
 == System Requirements ==
 
 Minimal requirements:
-* PHP 5.2 or later.
+* PHP 5.2 or later. 5.3 or later is recommended.
 * Web server. The simplest is to use Apache, nginx with php_fpm also works, IIS and others are also supported in theory.
 * MySQL DBMS version 5 or later.
 * UNIX-like system is preferred.
@@ -34,8 +34,8 @@ Optional PHP extensions:
 * [http://wiki.4intra.net/Mediawiki4Intranet#php5-fss php5-fss] for faster string operations.
 * Mail and Net_SMTP PEAR packages for e-mail.
 
-Many of third-party software is also required for different extensions to work,
-but GNU/Linux users may usually 'apt-get' them, and Windows users may use our
+A lot of third-party software is also required for different extensions to work;
+GNU/Linux users may usually 'apt-get' them, and Windows users may use our
 standalone bundle (see below).
 
 * PDF: [http://pages.cs.wisc.edu/~ghost/ GhostScript], [http://poppler.freedesktop.org/ Poppler] — former [http://www.foolabs.com/xpdf/ Xpdf] ([http://gnuwin32.sourceforge.net/packages/xpdf.htm windows)]
@@ -60,7 +60,7 @@ apt-get install php5 php5-mysql php5-gd php5-curl php5-apc php-mail php-net-smtp
 	ffmpeg graphviz gnuplot openjdk-6-jre sphinxsearch zip unzip umlet
 </pre>
 
-After running this apt-get, the only software which must be installed manually will be:
+After running this command, the only software which must be installed manually will be:
 * [http://dvisvgm.sourceforge.net/ dvisvgm]
 * [http://www.umlgraph.org/ UMLGraph]
 * [http://wiki.4intra.net/php5-fss php5-fss]
@@ -144,18 +144,70 @@ EOF
 php extensions/SphinxSearchEngine/rebuild-sphinx.php
 </pre>
 
-At this point you're done and now have a working Mediawiki4Intranet installation,
+At this point you're done and have a working Mediawiki4Intranet installation,
 with all included extensions and patches.
 
-NB: If you have commit access and want to participate in development, use read-write
+=== Using read-write clones ===
+
+If you have commit access and want to participate in development, use read-write
 installation instead of read-only:
 
 <pre>
-git clone git@github.com/mediawiki4intranet/configs.git mediawiki/configs
+git clone https://github.com/mediawiki4intranet/configs.git mediawiki/configs
 php mediawiki/configs/repo.php install mediawiki4intranet rw
 </pre>
 
-You may even fork this repository, add your own extensions and create your own bundle! :)
+Then develop as usual, and after push'ing to any extension or core, just run
+the following inside your 'configs' working copy:
+<pre>
+php repo.php update
+git push
+</pre>
+
+'''CAUTION:''' Since recently, repo.php doesn't use different URLs for read-only
+and read-write clones. So, to push to github via ssh, use the built-in Git feature:
+
+<pre>
+git config --global url.ssh://git@github.com.pushinsteadof https://github.com
+</pre>
+
+=== Creating your own bundle ===
+
+To create your own bundle, fork this repository, clone it or switch your
+existing 'configs' working copy to it (it '''must''' be cloned as '''read-write'''),
+and then use the inclusion feature of repo.php:
+
+Create your own 'my-super-bundle.ini' in your 'configs' working copy using
+the following template:
+
+<pre>
+[_params]
+include[] = mediawiki4intranet
+
+;; Optionally add your own repository url prefixes:
+;prefix.my-server = git:http://my.site/git/$REPO.git
+
+; And add some extensions like this:
+[extensions/MyExtension]
+repo = my-server:MyExtension
+;; You may override the checked out branch using:
+;branch = master
+
+;; Or remove extensions like this:
+;[extensions/Wikilog]
+;repo =
+</pre>
+
+Then run:
+<pre>
+php repo.php install my-super-bundle rw
+git add my-super-bundle.ini my-super-bundle-index.ini
+git commit -m "Created a fork of MediaWiki4Intranet bundle with my own extension!"
+git push
+</pre>
+
+As you already may have noticed, this doesn't change any files of our distribution,
+so the resulting repository will be very easy to merge with newer versions of ours.
 
 == Standalone Windows bundle ==
 
@@ -173,3 +225,13 @@ and securely configured, not to speak of that it runs on a bad operating system
 made by bad company with bad policies. :)
 
 Use it only if you want to have Mediawiki4Intranet on your local machine with that OS.
+
+== repo.php TODO ==
+
+MAYBE:
+* Setup remotes for additional repositories of the same module (i.e. wikimedia for our forks)
+* Support automatic calling maintenance/update.php for DB updates
+* Support 'soft update' for the case of added extensions:
+** First update configs dir except *Settings.php
+** Then update the code, then update *Settings.php so missing extension files do not crash the live site.
+*: But maybe it's a bad idea just because updating the live site is a bad idea itself.
